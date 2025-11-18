@@ -1,6 +1,6 @@
-import requests
+from model import load_model, predict_single
 
-url = "http://localhost:8000/predict"
+dv, model = load_model()
 
 sample = {
     "administrative": 0,
@@ -22,10 +22,7 @@ sample = {
     "weekend": 0
 }
 
-response = requests.post(url, json=sample)
-
-print("Status:", response.status_code)
-print("Response:", response.json())
+print("Prediction:", predict_single(sample, dv, model))
 
 # To run:
-# python src/predict.py
+# python src/sample_predict.py
