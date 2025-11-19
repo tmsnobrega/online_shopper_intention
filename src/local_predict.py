@@ -25,4 +25,4 @@ sample = {
 print("Prediction:", predict_single(sample, dv, model))
 
 # To run:
-# python src/sample_predict.py
+# python src/local_predict.py

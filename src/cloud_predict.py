@@ -1,6 +1,6 @@
 import requests
 
-url = "http://localhost:8000/predict"
+url = "https://online-shopper-intention-fastapi.onrender.com/predict"
 
 sample = {
     "administrative": 0,
@@ -23,7 +23,7 @@ sample = {
 }
 
 response = requests.post(url, json=sample)
-print("Response:", response.json())
+print(response.json())
 
 # To run:
-# python src/predict.py
+# python src/cloud_predict.py

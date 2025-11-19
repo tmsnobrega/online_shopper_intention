@@ -1,92 +1,117 @@
-🛍️ Online Shopper Purchase Intention — ML Model & FastAPI Deployment
 
-This project predicts whether an online user will make a purchase based on their browsing session data.
-It includes:
+# **🛍️ Online Shopper Purchase Intention**
 
-Full EDA
+**Binary Classification • Machine Learning • XGBoost • FastAPI • Docker • Cloud Deployment**
 
-Model development (Logistic Regression, Random Forest, XGBoost)
+This project answers a key business question: “Will this visitor make a purchase?”
 
-Model comparison
+Using user behavior data, it demonstrates the complete machine learning workflow — from exploratory data analysis, data cleaning, feature engineering, and model training/tuning, to building a production-ready inference API using FastAPI, containerizing it with Docker, and preparing the service for cloud deployment.
 
-Final deployment using FastAPI + Docker
+## **📊 Project Overview**
 
-📊 1. Project Overview
+The goal of this project is to classify whether an online browsing session will result in a purchase (`revenue = 1`), making this a binary classification problem.
+The dataset contains a mix of:
 
-The goal is to predict whether a user session will result in a purchase (Revenue = 1) using behavioral and engagement metrics from online shopping activity.
+- Categorical features such as `month`, `visitor_type`, `region`, and `traffic_type` and more.
 
-Models tested:
+- Numerical features such as `page_values`, `bounce_rates`, `exit_rates`, and various page-duration metrics.
 
-Logistic Regression
+Three machine learning models were trained and evaluated:
 
-Random Forest
+- Logistic Regression
 
-XGBoost (final deployed model)
+- Random Forest
 
-The final model (XGBoost) is deployed as a FastAPI web service running inside Docker.
+- XGBoost (selected model)
 
-📂 2. Project Structure
-.
-├── models/
-│   ├── xgboost_model.pkl
-│   └── random_forest.pkl
-│
-├── src/
-│   ├── app.py               # FastAPI app
-│   ├── model.py             # Model loading & prediction logic
-│   ├── __init__.py
-│
-├── notebooks/
-│   └── training.ipynb       # EDA + model training
-│
-├── uv.lock
-├── pyproject.toml
-├── Dockerfile
-├── predict.py               # API test client
-└── README.md
+After comparing performance across ROC AUC, Precision, Recall, and F1-score, XGBoost consistently delivered the strongest balance across metrics.
+This model was therefore chosen for deployment, wrapped in a FastAPI inference endpoint and packaged in a Docker container for cloud-ready deployment.
 
-📈 3. Model Performance Summary
-Model	ROC AUC	Precision	Recall	F1 Score
-Logistic Regression	0.910	0.707	0.365	0.481
-Random Forest	0.935	0.811	0.476	0.600
-XGBoost (Final Model)	0.938	0.718	0.595	0.651
+## **🧠 Key EDA Insights**
 
-XGBoost consistently provided:
+- Class imbalance: Only ~15% of sessions convert (`revenue = 1`), so the positive class is strongly underrepresented.
 
-highest ROC AUC
+- Engagement drives conversion: Higher values for `page_values` and `product_related` (both count and duration) are strongly associated with purchases.
 
-highest recall
+- Bounce & exit behavior: Sessions with high `bounce_rates` and `exit_rates` are very unlikely to convert.
 
-highest F1-score
+- Visitor type: Surprisingly, `new_visitors` tend to convert more than `returning_visitors` in this dataset.
 
-strongest balance across confusion matrix metrics
+- Seasonality: Strong seasonal effects, with a pronounced peak in November, likely related to seasonal promotions and events.
 
-Therefore, XGBoost was selected for deployment.
+- Key categorical features: `month` and `traffic_type` are among the most predictive categorical variables.
 
-⚙️ 4. Running the API Locally (Without Docker)
-1. Start virtual environment
-source .venv/Scripts/activate
+- Handling rare categories: Rare categories were grouped into "other" to stabilize estimates and reduce noise from underrepresented levels.
 
-2. Run FastAPI server
+These insights guided feature engineering decisions and model selection.
+
+## **📈 Model Performance Summary**
+
+| Model               | ROC AUC   | Precision | Recall    | F1 Score  |
+| ------------------- | --------- | --------- | --------- | --------- |
+| Logistic Regression | 0.910     | 0.707     | 0.365     | 0.481     |
+| Random Forest       | 0.935     | 0.811     | 0.476     | 0.600     |
+| **XGBoost (Final)** | **0.938** | **0.718** | **0.595** | **0.651** |
+
+#### Why XGBoost was selected?
+
+- Best ROC AUC across all models
+
+- Strong recall, important for capturing as many potential buyers as possible
+
+- Highest F1-score, providing a good balance between precision and recall
+
+- Robust to class imbalance and capable of modeling nonlinear relationships
+
+- Most consistent performance across validation folds and confusion matrix metrics
+## **🚀 Local Deployment**
+
+This section explains exactly how to run the project locally and in Docker, starting from cloning the repository.
+
+```bash
+  git clone https://github.com/tmsnobrega/online_shopper_intention.git
+  cd online_shopper_intention
+```
+
+This project uses uv for dependency management. To install all required packages exactly as locked in uv.lock, run:
+```bash
+uv sync
+```
+
+Start FastAPI using uvicorn
+```bash
 uvicorn src.app:app --reload
+```
 
-Open docs:
+Open the API in your browser (Swagger UI)
+```bash
 http://localhost:8000/docs
+```
 
-🐳 5. Running the API with Docker
-1. Build Docker image
+Before proceeding, Windows users must install Docker Desktop.
+Ensure "Use WSL 2 backend" is enabled.
+
+After installation, ensure Docker is running:
+```bash
+docker --version
+```
+
+Run the following from the repository root (where the Dockerfile is located):
+```bash
 docker build -t shopper-intent .
+```
 
-2. Run the container
+Run the Docker Container
+```bash
 docker run -p 8000:8000 shopper-intent
+```
 
-Open the interactive API:
-http://localhost:8000/docs
 
-📡 6. Example POST Request
+## Example prediction using predict.py
 
-Using predict.py:
+This script sends a POST request to the running FastAPI service.
 
+```javascript
 import requests
 
 url = "http://localhost:8000/predict"
@@ -111,55 +136,106 @@ sample = {
     "weekend": 0
 }
 
-print(requests.post(url, json=sample).json())
+response = requests.post(url, json=sample)
+print(response.json())
+```
 
+Run it with:
+```bash
+python src/predict.py
+```
 
-or via curl:
+The default model is XGBoost, but it is possible to change the model selected by replacing the `MODEL_PATH` variable in src/model.py
+## **☁️ Cloud Deployment (Docker → Render)**
 
-curl -X POST "http://localhost:8000/predict" \
-     -H "Content-Type: application/json" \
-     -d '{"administrative":0, "administrative_duration":0.0, ... }'
+The final XGBoost model is deployed as a FastAPI service running inside a Docker container and hosted on Render, a cloud platform that supports containerized applications.
 
-🧠 7. Key EDA Insights
+**1. The project includes a production-ready Dockerfile. This image contains:**
 
-Only ~15% of sessions convert → strong class imbalance
+- Python 3.13
 
-Higher engagement (PageValues, ProductRelated) strongly predicts purchase
+- FastAPI + Uvicorn
 
-High ExitRates & BounceRates indicate non-buying behavior
+- All dependencies (installed via uv and uv.lock)
 
-New visitors convert more than returning visitors
+- The trained XGBoost model and DictVectorizer
 
-Strong seasonal effects (peak in November)
+- The FastAPI app exposed on port 8000
 
-Most predictive categorical features: month, traffic_type
+**2. Push Project to GitHub**
 
-Rarer categories were grouped into "other" to stabilize estimates
+- Render automatically pulls your GitHub repository.
 
-🚀 8. Deployment Notes
-✔️ Uses FastAPI
-✔️ Packaged with Docker
-✔️ Dependencies managed with uv + uv.lock
-✔️ Model loaded via DictVectorizer + XGBoost
-✔️ API production-ready
-🎉 9. Final Notes
+**3. Deploy on Render**
 
-This project demonstrates the full lifecycle of an ML model:
+On the Render dashboard:
 
-Data cleaning
+- New → Web Service
 
-EDA
+- Select your GitHub repo
 
-Feature engineering
+- Choose Docker as the runtime
 
-Modeling
+Use:
 
-Evaluation
+- Dockerfile path: `./Dockerfile`
 
-Model comparison
+- Port: `8000`
 
-Deployment with FastAPI
+- Start Command:
+```bash
+uv run uvicorn src.app:app --host 0.0.0.0 --port 8000
+```
 
-Containerization with Docker
+Render builds the Docker image, starts the FastAPI service, and provides a public URL.
 
-You now have a ready-to-ship inference service.
+**4. Access the Live API**
+
+The deployed service is available at:
+
+👉 [https://online-shopper-intention-fastapi.onrender.com/docs](https://online-shopper-intention-fastapi.onrender.com/docs)
+
+This endpoint exposes:
+
+- Interactive Swagger UI
+
+- Live prediction endpoint (POST/predict)
+
+- Full OpenAPI schema
+
+You can send JSON payloads directly through the browser or via API clients. 
+
+## Example prediction using cloud_predict.py
+```javascript
+import requests
+
+url = "https://online-shopper-intention-fastapi.onrender.com/predict"
+
+sample = {
+    "administrative": 0,
+    "administrative_duration": 0.0,
+    "informational": 0,
+    "informational_duration": 0.0,
+    "product_related": 4,
+    "product_related_duration": 104.0,
+    "bounce_rates": 0.0,
+    "exit_rates": 0.05,
+    "page_values": 0.0,
+    "special_day": 0.0,
+    "month": "May",
+    "operating_systems": "2",
+    "browser": "10",
+    "region": "2",
+    "traffic_type": "2",
+    "visitor_type": "returning_visitor",
+    "weekend": 0
+}
+
+response = requests.post(url, json=sample)
+print(response.json())
+```
+
+Run it with:
+```bash
+python src/cloud_predict.py
+```
